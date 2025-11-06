@@ -29,9 +29,11 @@ export class Ball {
         
     }
 
-    public updatePosition(): void {
-        this.x += this.velocityX;
-        this.y += this.velocityY;
+    public updatePosition(deltaTime: number): void {
+        // normalizing change in time to 60FPS
+        const normDelta = deltaTime / 16.67;
+        this.x += this.velocityX*normDelta;
+        this.y += this.velocityY*normDelta;
     }
 
     public checkWallCollision(): void {
