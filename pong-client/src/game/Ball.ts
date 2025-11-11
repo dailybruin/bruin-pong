@@ -1,4 +1,4 @@
-import { BALL_RADIUS, BALL_INITIAL_SPEED, CANVAS_WIDTH, CANVAS_HEIGHT } from './constants';
+import { BALL_RADIUS, BALL_INITIAL_SPEED, BALL_SPEED_INCREMENT, BALL_MAX_SPEED, CANVAS_WIDTH, CANVAS_HEIGHT } from './constants';
 
 export class Ball {
     public x: number;  
@@ -47,6 +47,36 @@ export class Ball {
         if (this.x - this.radius < 0 || this.x + this.radius > CANVAS_WIDTH) {
             this.velocityX = -this.velocityX;
         }
+    }
+
+    public checkPaddleCollision(paddleLeftEdge: number, paddleTop: number, paddleBottom: number): boolean {
+        // Check if ball is moving towards the paddle (positive velocityX means moving right)
+        if (this.velocityX <= 0) return false;
+
+        // Check if ball's right edge has reached or passed the paddle's left edge
+        const ballRightEdge = this.x + this.radius;
+        if (ballRightEdge < paddleLeftEdge) return false;
+        
+        // Check if ball hasn't passed through the paddle yet
+        const ballLeftEdge = this.x - this.radius;
+        if (ballLeftEdge > paddleLeftEdge) return false;
+
+        // Check if ball is within paddle's vertical range (with some tolerance for the radius)
+        if (this.y + this.radius < paddleTop || this.y - this.radius > paddleBottom) return false;
+
+        // Ball hit the left face of the paddle - reverse X velocity
+        // Also ensure ball doesn't get stuck inside paddle
+        if (this.x > paddleLeftEdge) {
+            this.x = paddleLeftEdge - this.radius;
+        }
+        this.velocityX = -this.velocityX;
+        
+        // Increase speed on paddle hit (up to max speed)
+        if (this.speed < BALL_MAX_SPEED) {
+            this.increaseSpeed(BALL_SPEED_INCREMENT);
+        }
+        
+        return true;
     }
 
     // Need function to check out of bounds (past the paddle)

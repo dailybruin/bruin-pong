@@ -1,12 +1,14 @@
 import { useEffect, useRef} from 'react';
 import { Ball } from '../game/Ball';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../game/constants';
+import { Paddle } from '../game/Paddle';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, PADDLE_COLOR } from '../game/constants';
 
 interface CanvasProps {
     ball: Ball;
+    paddle: Paddle;
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ ball }) => {
+export const Canvas: React.FC<CanvasProps> = ({ ball, paddle }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number>(null);
 
@@ -29,6 +31,9 @@ export const Canvas: React.FC<CanvasProps> = ({ ball }) => {
       // Draw ball
       ball.draw(ctx, "#1c93e8");
 
+      // Draw paddle
+      paddle.draw(ctx, PADDLE_COLOR);
+
       // Keep rendering
       animationFrameId.current = requestAnimationFrame(render);
     };
@@ -41,7 +46,55 @@ export const Canvas: React.FC<CanvasProps> = ({ ball }) => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [ball]);
+  }, [ball, paddle]);
+
+  // Mouse drag handling for paddle
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const getCanvasY = (event: MouseEvent): number => {
+      const rect = canvas.getBoundingClientRect();
+      return event.clientY - rect.top;
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const mouseY = getCanvasY(e);
+      // Check if mouse is over the paddle
+      const paddleX = paddle.x;
+      const paddleY = paddle.y;
+      const paddleWidth = paddle.width;
+      const paddleHeight = paddle.height;
+      
+      if (e.clientX >= canvas.getBoundingClientRect().left + paddleX &&
+          e.clientX <= canvas.getBoundingClientRect().left + paddleX + paddleWidth &&
+          mouseY >= paddleY &&
+          mouseY <= paddleY + paddleHeight) {
+        paddle.startDrag(mouseY);
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (paddle.isDragging) {
+        const mouseY = getCanvasY(e);
+        paddle.updateDrag(mouseY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      paddle.endDrag();
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [paddle]);
 
   return (
     <canvas
@@ -52,6 +105,7 @@ export const Canvas: React.FC<CanvasProps> = ({ ball }) => {
         border: '2px solid #00ff88',
         display: 'block',
         margin: '0 auto',
+        cursor: 'pointer',
       }}
     />
   );

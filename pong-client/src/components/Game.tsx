@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Canvas } from './Canvas';
 import { Ball } from '../game/Ball';
+import { Paddle } from '../game/Paddle';
 
 export const Game: React.FC = () => {
   const ball = useRef(new Ball());
+  const paddle = useRef(new Paddle());
   const animationFrameId = useRef<number>(null);
   const lastTimeRef = useRef<number>(0);
 
-  // Game loop (just update the ball for now)
+  // Game loop
   useEffect(() => {
     const gameLoop = (currentTime: number) => {
       const deltaTime = currentTime - lastTimeRef.current;
@@ -16,6 +18,13 @@ export const Game: React.FC = () => {
       // Update ball physics
       ball.current.updatePosition(deltaTime);
       ball.current.checkWallCollision();
+      
+      // Check paddle collision
+      ball.current.checkPaddleCollision(
+        paddle.current.getLeftEdge(),
+        paddle.current.getTopEdge(),
+        paddle.current.getBottomEdge()
+      );
 
       // Keep looping by calling requestAnimationFrame again
       animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -33,5 +42,5 @@ export const Game: React.FC = () => {
     };
   }, []);
 
-  return <Canvas ball={ball.current} />;
+  return <Canvas ball={ball.current} paddle={paddle.current} />;
 };
