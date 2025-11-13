@@ -7,6 +7,7 @@ export class Ball {
     public speed: number;
     public velocityX: number;
     public velocityY: number;
+    public outOfBounds: boolean;
 
     constructor() {
         this.radius = BALL_RADIUS;
@@ -15,6 +16,7 @@ export class Ball {
         this.speed = BALL_INITIAL_SPEED;
         this.velocityX = this.getRandomVelocity(0);
         this.velocityY = this.getRandomVelocity(1);
+        this.outOfBounds = false;
     }
 
     private getRandomVelocity(direction: number): number {
@@ -27,6 +29,10 @@ export class Ball {
             return Math.sin(angle) * this.speed;
         }
         
+    }
+
+    public isOutOfBounds(): boolean {
+        return this.outOfBounds;
     }
 
     public updatePosition(deltaTime: number): void {
@@ -43,9 +49,17 @@ export class Ball {
             this.velocityY = -this.velocityY;
         }
 
-        // Left and right wall collision
-        if (this.x - this.radius < 0 || this.x + this.radius > CANVAS_WIDTH) {
+        // Left wall collision
+        if (this.x - this.radius < 0) {
             this.velocityX = -this.velocityX;
+        }
+        
+        // Right wall collision - stop the ball (out of bounds)
+        // This will be handled as a score event in the game logic (NEED SOME VALUE TO INDICATE OUT OF BOUNDS)
+        if (this.x + this.radius > CANVAS_WIDTH) {
+            this.velocityX = 0;
+            this.velocityY = 0;
+            this.outOfBounds = true;
         }
     }
 
