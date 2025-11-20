@@ -64,17 +64,24 @@ export class Ball {
         // Check if ball is within paddle's vertical range (with some tolerance for the radius)
         if (this.y + this.radius < paddleTop || this.y - this.radius > paddleBottom) return false;
 
-        // Ball hit the left face of the paddle - reverse X velocity
+        // Ball hit the left face of the paddle - reverse X velocity with random angle
         // Also ensure ball doesn't get stuck inside paddle
         if (this.x > paddleLeftEdge) {
             this.x = paddleLeftEdge - this.radius;
         }
-        this.velocityX = -this.velocityX;
         
         // Increase speed on paddle hit (up to max speed)
         if (this.speed < BALL_MAX_SPEED) {
             this.increaseSpeed(BALL_SPEED_INCREMENT);
         }
+        
+        // Create random bounce angle (between -45° and +45° from horizontal)
+        // This makes the game more interesting and unpredictable
+        const randomAngle = (Math.random() - 0.5) * (Math.PI / 2); // -45° to +45°
+        
+        // Set new velocities: always moving left (negative X), random Y angle
+        this.velocityX = -Math.abs(Math.cos(randomAngle) * this.speed);
+        this.velocityY = Math.sin(randomAngle) * this.speed;
         
         return true;
     }
