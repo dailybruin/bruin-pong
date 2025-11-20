@@ -2,15 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { Canvas } from './Canvas';
 import { Ball } from '../game/Ball';
 import { Paddle } from '../game/Paddle';
+import { saveScore, getTopScore } from '../services/scoreService';
 
 export const Game: React.FC = () => {
   const ball = useRef(new Ball());
   const paddle = useRef(new Paddle());
   const animationFrameId = useRef<number>(null);
   const lastTimeRef = useRef<number>(0);
+  const gameOverRef = useRef<boolean>(false);
 
   const [score, setScore] = useState(0);
+  const [topScore, setTopScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
   const scoreRef = useRef(0);
+
+  // Load top score on mount
+  useEffect(() => {
+    const loadTopScore = async () => {
+      const top = await getTopScore();
+      setTopScore(top);
+    };
+    loadTopScore();
+  }, []);
 
   // Game loop
   useEffect(() => {
@@ -18,7 +31,19 @@ export const Game: React.FC = () => {
       const deltaTime = currentTime - lastTimeRef.current;
       lastTimeRef.current = currentTime;
 
+      // Don't update if game is over
+      if (gameOverRef.current) {
+        animationFrameId.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+
       // Update ball physics
+      // Add safety check: if ball has zero velocity but game is not over, give it velocity
+      if (ball.current.velocityX === 0 && ball.current.velocityY === 0 && !ball.current.outOfBounds) {
+        ball.current.velocityX = -ball.current.speed;
+        ball.current.velocityY = ball.current.speed * 0.5;
+      }
+      
       ball.current.updatePosition(deltaTime);
       ball.current.checkWallCollision();
       
@@ -27,17 +52,19 @@ export const Game: React.FC = () => {
         // Reverse ball direction and increase speed
         scoreRef.current += 1; // Update ref immediately
         setScore(scoreRef.current); // Update state for UI
-        console.log('Score updated:', scoreRef.current);
       }
 
-      // Check if ball went out of bounds (left side)
-      if (ball.current.isOutOfBounds()) {
-        console.log('Game Over! Final Score:', scoreRef.current);
-        console.log(score);
-        // For now, just reset the ball and paddle
-        // ball.current = new Ball();
-        // paddle.current = new Paddle();
-        // setScore(0);
+      // Check if ball went out of bounds (right side - hits right edge)
+      if (ball.current.isOutOfBounds() && !gameOverRef.current) {
+        gameOverRef.current = true;
+        setGameOver(true);
+        
+        // Save score to Firebase
+        const finalScore = scoreRef.current;
+        saveScore(finalScore).then(() => {
+          // Reload top score after saving
+          getTopScore().then(top => setTopScore(top));
+        });
       }
       
       // Keep looping by calling requestAnimationFrame again
@@ -56,10 +83,53 @@ export const Game: React.FC = () => {
     };
   }, []);
 
+  // Reset game function
+  const resetGame = () => {
+    // Reset game state flags first
+    gameOverRef.current = false;
+    setGameOver(false);
+    
+    // Reset ball and paddle
+    ball.current.reset();
+    paddle.current = new Paddle();
+    
+    // Reset score
+    scoreRef.current = 0;
+    setScore(0);
+    
+    // Reset timing for smooth restart
+    lastTimeRef.current = performance.now();
+    
+    // ALWAYS force set velocities directly - don't rely on reset() alone
+    // This ensures the ball definitely moves on restart
+    ball.current.velocityX = -ball.current.speed * 0.8; // Always move left
+    ball.current.velocityY = (Math.random() - 0.5) * ball.current.speed * 0.6; // Random vertical
+    
+    // Ensure velocities are definitely not zero
+    if (ball.current.velocityX === 0) {
+      ball.current.velocityX = -ball.current.speed;
+    }
+    if (ball.current.velocityY === 0) {
+      ball.current.velocityY = ball.current.speed * 0.5;
+    }
+    
+    // Ensure outOfBounds is false
+    ball.current.outOfBounds = false;
+  };
+
   return (
     <div>
-      <div>
-        Score: {score}
+      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+        <div>Score: {score}</div>
+        <div>Top Score: {topScore}</div>
+        {gameOver && (
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ color: 'red', marginBottom: '10px' }}>Game Over! Final Score: {score}</div>
+            <button onClick={resetGame} style={{ padding: '8px 16px', cursor: 'pointer' }}>
+              Play Again
+            </button>
+          </div>
+        )}
       </div>
       <Canvas ball={ball.current} paddle={paddle.current} />
     </div>
