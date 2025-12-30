@@ -43,6 +43,17 @@ export class Ball {
     }
 
     public checkWallCollision(): void {
+        // Don't check right wall collision if already out of bounds
+        // This prevents reset issues where ball might be near the edge
+        if (!this.outOfBounds) {
+            // Right wall collision - stop the ball (out of bounds)
+            if (this.x + this.radius > CANVAS_WIDTH) {
+                this.velocityX = 0;
+                this.velocityY = 0;
+                this.outOfBounds = true;
+                return; // Exit early to prevent other collisions
+            }
+        }
 
         // Top and bottom wall collision
         if (this.y - this.radius < 0 || this.y + this.radius > CANVAS_HEIGHT) {
@@ -52,14 +63,6 @@ export class Ball {
         // Left wall collision
         if (this.x - this.radius < 0) {
             this.velocityX = -this.velocityX;
-        }
-        
-        // Right wall collision - stop the ball (out of bounds)
-        // This will be handled as a score event in the game logic (NEED SOME VALUE TO INDICATE OUT OF BOUNDS)
-        if (this.x + this.radius > CANVAS_WIDTH) {
-            this.velocityX = 0;
-            this.velocityY = 0;
-            this.outOfBounds = true;
         }
     }
 
@@ -96,11 +99,30 @@ export class Ball {
     // Need function to check out of bounds (past the paddle)
 
     public reset(): void {
+        // Reset outOfBounds flag FIRST before resetting position
+        // This prevents checkWallCollision from immediately stopping the ball
+        this.outOfBounds = false;
+        
+        // Reset speed
+        this.speed = BALL_INITIAL_SPEED;
+        
+        // Reset position to center - ensure it's well away from edges
         this.x = CANVAS_WIDTH / 2;
         this.y = CANVAS_HEIGHT / 2;
-        this.velocityX = this.getRandomVelocity(0);
-        this.velocityY = this.getRandomVelocity(1);
-        this.speed = BALL_INITIAL_SPEED;
+        
+        // Directly set velocities - ball always starts moving left (negative X) and has some vertical component
+        // This ensures the ball definitely moves on restart
+        const angle = (Math.random() - 0.5) * (Math.PI / 4); // Random angle between -45° to +45°
+        this.velocityX = -Math.abs(Math.cos(angle) * this.speed); // Always negative (left)
+        this.velocityY = Math.sin(angle) * this.speed; // Can be positive or negative
+        
+        // Final safety: ensure velocities are definitely not zero
+        if (this.velocityX === 0) {
+            this.velocityX = -this.speed;
+        }
+        if (this.velocityY === 0) {
+            this.velocityY = this.speed * 0.5;
+        }
     }
 
     public increaseSpeed(increment: number): void {
