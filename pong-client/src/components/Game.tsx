@@ -3,6 +3,7 @@ import { Canvas } from './Canvas';
 import { Ball } from '../game/Ball';
 import { Paddle } from '../game/Paddle';
 import { saveScore, getTopScore } from '../services/scoreService';
+import './Game.css';
 
 export const Game: React.FC = () => {
   const ball = useRef(new Ball());
@@ -14,6 +15,7 @@ export const Game: React.FC = () => {
   const [score, setScore] = useState(0);
   const [topScore, setTopScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
   const scoreRef = useRef(0);
 
   // Load top score on mount
@@ -27,6 +29,8 @@ export const Game: React.FC = () => {
 
   // Game loop
   useEffect(() => {
+    if (!gameStarted) return;
+
     const gameLoop = (currentTime: number) => {
       const deltaTime = currentTime - lastTimeRef.current;
       lastTimeRef.current = currentTime;
@@ -81,7 +85,15 @@ export const Game: React.FC = () => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, []);
+  }, [gameStarted]);
+
+  // Start game function
+  const startGame = () => {
+    setGameStarted(true);
+    // Initialize ball velocity
+    ball.current.velocityX = -ball.current.speed * 0.8;
+    ball.current.velocityY = (Math.random() - 0.5) * ball.current.speed * 0.6;
+  };
 
   // Reset game function
   const resetGame = () => {
@@ -117,21 +129,52 @@ export const Game: React.FC = () => {
     ball.current.outOfBounds = false;
   };
 
+  // return (
+  //   <div>
+  //     <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+  //       <div>Score: {score}</div>
+  //       <div>Top Score: {topScore}</div>
+  //       {gameOver && (
+  //         <div style={{ marginTop: '10px' }}>
+  //           <div style={{ color: 'red', marginBottom: '10px' }}>Game Over! Final Score: {score}</div>
+  //           <button onClick={resetGame} style={{ padding: '8px 16px', cursor: 'pointer' }}>
+  //             Play Again
+  //           </button>
+  //         </div>
+  //       )}
+  //     </div>
+  //     <Canvas ball={ball.current} paddle={paddle.current} />
+  //   </div>
+  // );
   return (
     <div>
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+      <div className="score-display">
         <div>Score: {score}</div>
         <div>Top Score: {topScore}</div>
+      </div>
+      <div className="game-container">
+        <Canvas ball={ball.current} paddle={paddle.current} />
+
+        {!gameStarted && (
+          <div className="game-over-overlay">
+            <button onClick={startGame} className="play-again-button">
+              Start Game! 
+            </button>
+          </div>
+        )}
+
         {gameOver && (
-          <div style={{ marginTop: '10px' }}>
-            <div style={{ color: 'red', marginBottom: '10px' }}>Game Over! Final Score: {score}</div>
-            <button onClick={resetGame} style={{ padding: '8px 16px', cursor: 'pointer' }}>
+          <div className="game-over-overlay">
+            <div className="game-over-text">
+              Game Over! <br />
+              Final Score: {score}
+            </div>
+            <button onClick={resetGame} className="play-again-button">
               Play Again
             </button>
           </div>
         )}
       </div>
-      <Canvas ball={ball.current} paddle={paddle.current} />
     </div>
   );
 };
