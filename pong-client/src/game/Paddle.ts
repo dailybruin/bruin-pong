@@ -8,6 +8,8 @@ export class Paddle {
     public isDragging: boolean;
     private dragStartY: number;
     private dragStartMouseY: number;
+    public velocityY: number; 
+
 
     constructor() {
         this.width = PADDLE_WIDTH;
@@ -17,6 +19,7 @@ export class Paddle {
         this.isDragging = false;
         this.dragStartY = 0;
         this.dragStartMouseY = 0;
+        this.velocityY = 0;
     }
 
     public startDrag(mouseY: number): void {
@@ -37,6 +40,23 @@ export class Paddle {
 
     public endDrag(): void {
         this.isDragging = false;
+    }
+
+    // Update paddle position based on velocity (FOR KEYBOARD)
+    public updatePosition(deltaTime: number): void {
+        if (this.velocityY === 0) return;
+        
+        // Normalize to 60 FPS like ball
+        const normDelta = deltaTime / 16.67;
+        const newY = this.y + this.velocityY * normDelta;
+        
+        // constrain paddle to canvas bounds
+        this.y = Math.max(0, Math.min(CANVAS_HEIGHT - this.height, newY));
+    }
+
+    // Set velocity for keyboard controls
+    public setVelocity(velocity: number): void {
+        this.velocityY = velocity;
     }
 
     public getLeftEdge(): number {

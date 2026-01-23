@@ -41,6 +41,9 @@ export const Game: React.FC = () => {
         return;
       }
 
+      // update paddle position (for keyboard)
+      paddle.current.updatePosition(deltaTime);
+
       // Update ball physics
       // Add safety check: if ball has zero velocity but game is not over, give it velocity
       if (ball.current.velocityX === 0 && ball.current.velocityY === 0 && !ball.current.outOfBounds) {

@@ -11,6 +11,7 @@ interface CanvasProps {
 export const Canvas: React.FC<CanvasProps> = ({ ball, paddle }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number>(null);
+  const keysPressed = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -93,6 +94,52 @@ export const Canvas: React.FC<CanvasProps> = ({ ball, paddle }) => {
       canvas.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [paddle]);
+
+  // Handling keyboard controls
+  useEffect(() => {
+    const PADDLE_SPEED = 6; // Adjust this value to change paddle speed
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault(); // Prevent page scrolling
+        keysPressed.current.add(e.key);
+        
+        // Update paddle velocity based on which keys are pressed
+        if (keysPressed.current.has('ArrowUp') && keysPressed.current.has('ArrowDown')) {
+          paddle.setVelocity(0); // Both keys cancel out
+        } else if (keysPressed.current.has('ArrowUp')) {
+          paddle.setVelocity(-PADDLE_SPEED);
+        } else if (keysPressed.current.has('ArrowDown')) {
+          paddle.setVelocity(PADDLE_SPEED);
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        keysPressed.current.delete(e.key);
+        
+        // Update paddle velocity based on remaining keys
+        if (keysPressed.current.has('ArrowUp') && keysPressed.current.has('ArrowDown')) {
+          paddle.setVelocity(0);
+        } else if (keysPressed.current.has('ArrowUp')) {
+          paddle.setVelocity(-PADDLE_SPEED);
+        } else if (keysPressed.current.has('ArrowDown')) {
+          paddle.setVelocity(PADDLE_SPEED);
+        } else {
+          paddle.setVelocity(0); // No keys pressed
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [paddle]);
 
