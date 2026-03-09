@@ -2,15 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { Canvas } from './Canvas';
 import { Ball } from '../game/Ball';
 import { Paddle } from '../game/Paddle';
+import { Obstacle } from '../game/Obstacle';
+import { MAX_OBSTACLES } from '../game/constants';
 import { saveScore, getTopScore } from '../services/scoreService';
 import './Game.css';
 
 export const Game: React.FC = () => {
   const ball = useRef(new Ball());
   const paddle = useRef(new Paddle());
+  const obstacles = useRef<Obstacle[]>([]);
   const animationFrameId = useRef<number>(null);
   const lastTimeRef = useRef<number>(0);
   const gameOverRef = useRef<boolean>(false);
+  const paddleHitsRef = useRef(0);
 
   const [score, setScore] = useState(0);
   const [topScore, setTopScore] = useState(0);
@@ -54,11 +58,29 @@ export const Game: React.FC = () => {
       ball.current.updatePosition(deltaTime);
       ball.current.checkWallCollision();
       
+      // Check obstacle collisions
+      obstacles.current.forEach(obstacle => {
+        ball.current.checkObstacleCollision(
+          obstacle.x,
+          obstacle.y,
+          obstacle.radius,
+          (ballX, ballY) => obstacle.getCollisionNormal(ballX, ballY)
+        );
+      });
+      
       // Check paddle collision
       if (ball.current.checkPaddleCollision(paddle.current.getLeftEdge(), paddle.current.getTopEdge(), paddle.current.getBottomEdge())) {
         // Reverse ball direction and increase speed
         scoreRef.current += 1; // Update ref immediately
         setScore(scoreRef.current); // Update state for UI
+        
+        // Increment paddle hits counter
+        paddleHitsRef.current += 1;
+        
+        // Spawn a new obstacle every 3 paddle hits if under max limit
+        if (paddleHitsRef.current % 3 === 0 && obstacles.current.length < MAX_OBSTACLES) {
+          obstacles.current.push(new Obstacle());
+        }
       }
 
       // Check if ball went out of bounds (right side - hits right edge)
@@ -108,6 +130,12 @@ export const Game: React.FC = () => {
     ball.current.reset();
     paddle.current = new Paddle();
     
+    // Reset obstacles
+    obstacles.current = [];
+    
+    // Reset paddle hits counter
+    paddleHitsRef.current = 0;
+    
     // Reset score
     scoreRef.current = 0;
     setScore(0);
@@ -156,7 +184,7 @@ export const Game: React.FC = () => {
         <div>Top Score: {topScore}</div>
       </div>
       <div className="game-container">
-        <Canvas ball={ball.current} paddle={paddle.current} />
+        <Canvas ball={ball.current} paddle={paddle.current} obstacles={obstacles.current} />
 
         {!gameStarted && (
           <div className="game-over-overlay">

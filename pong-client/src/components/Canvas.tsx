@@ -1,14 +1,16 @@
 import { useEffect, useRef} from 'react';
 import { Ball } from '../game/Ball';
 import { Paddle } from '../game/Paddle';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PADDLE_COLOR } from '../game/constants';
+import { Obstacle } from '../game/Obstacle';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, PADDLE_COLOR, OBSTACLE_COLOR } from '../game/constants';
 
 interface CanvasProps {
     ball: Ball;
     paddle: Paddle;
+    obstacles: Obstacle[];
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ ball, paddle }) => {
+export const Canvas: React.FC<CanvasProps> = ({ ball, paddle, obstacles }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number>(null);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -29,6 +31,11 @@ export const Canvas: React.FC<CanvasProps> = ({ ball, paddle }) => {
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+      // Draw obstacles (pass ball position for eye tracking)
+      obstacles.forEach(obstacle => {
+        obstacle.draw(ctx, OBSTACLE_COLOR, ball.x, ball.y);
+      });
+
       // Draw ball
       ball.draw(ctx, "#1c93e8");
 
@@ -47,7 +54,7 @@ export const Canvas: React.FC<CanvasProps> = ({ ball, paddle }) => {
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [ball, paddle]);
+  }, [ball, paddle, obstacles]);
 
   // Mouse drag handling for paddle
   useEffect(() => {

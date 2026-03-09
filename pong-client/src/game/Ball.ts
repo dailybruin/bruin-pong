@@ -96,6 +96,32 @@ export class Ball {
         return true;
     }
 
+    public checkObstacleCollision(obstacleX: number, obstacleY: number, obstacleRadius: number, getCollisionNormal: (ballX: number, ballY: number) => { nx: number; ny: number }): boolean {
+        const dx = this.x - obstacleX;
+        const dy = this.y - obstacleY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = this.radius + obstacleRadius;
+
+        if (distance < minDistance) {
+            // Collision detected - bounce off using normal vector
+            const normal = getCollisionNormal(this.x, this.y);
+            
+            // Calculate reflection: v' = v - 2(v · n)n
+            const dotProduct = this.velocityX * normal.nx + this.velocityY * normal.ny;
+            this.velocityX = this.velocityX - 2 * dotProduct * normal.nx;
+            this.velocityY = this.velocityY - 2 * dotProduct * normal.ny;
+            
+            // Push ball out of obstacle to prevent sticking
+            const overlap = minDistance - distance;
+            this.x += normal.nx * overlap;
+            this.y += normal.ny * overlap;
+            
+            return true;
+        }
+        
+        return false;
+    }
+
     // Need function to check out of bounds (past the paddle)
 
     public reset(): void {
